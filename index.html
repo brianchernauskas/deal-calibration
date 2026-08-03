@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deal Calibration — Proxima</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f8f9fb;
+    --surface2: #f0f2f5;
+    --border: #e2e6ea;
+    --text: #1a1d23;
+    --text-muted: #6b7280;
+    --accent: #4f46e5;
+    --accent-light: #ede9fe;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --aws: #ff9900;
+    --azure: #0078d4;
+    --gcp: #1a73e8;
+  }
+  [data-theme="dark"] {
+    --bg: #0f1117;
+    --surface: #1c1f2b;
+    --surface2: #252836;
+    --border: #2e3347;
+    --text: #e8eaf0;
+    --text-muted: #8b91a8;
+    --accent: #7c6ff7;
+    --accent-light: #2d2b5a;
+    --danger: #f87171;
+    --danger-light: #3b1515;
+    --success: #4ade80;
+    --success-light: #0f2e1a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.5; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .proxima-badge { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-light); padding: 3px 8px; border-radius: 4px; }
+  header h1 { font-size: 1.1rem; font-weight: 600; }
+  .theme-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; color: var(--text-muted); font-size: .85rem; }
+
+  main { max-width: 980px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 32px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .stat-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 6px; }
+  .stat-value { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .stat-sub { font-size: .75rem; color: var(--text-muted); margin-top: 4px; }
+
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 22px; }
+  .section-title { font-size: .85rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 18px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: .8rem; font-weight: 500; color: var(--text-muted); }
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 11px;
+    color: var(--text);
+    font-size: .9rem;
+    font-family: inherit;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 9px 20px; font-size: .9rem; font-weight: 600; cursor: pointer; }
+  .btn-primary:hover { opacity: .9; }
+  .btn-secondary { background: none; border: 1px solid var(--border); border-radius: 7px; padding: 9px 16px; font-size: .9rem; cursor: pointer; color: var(--text); }
+  .btn-secondary:hover { background: var(--surface2); }
+
+  .deals-table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .provider-pill {
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: .04em;
+  }
+  .provider-pill.aws { background: rgba(255,153,0,.15); color: var(--aws); }
+  .provider-pill.azure { background: rgba(0,120,212,.15); color: var(--azure); }
+  .provider-pill.gcp { background: rgba(26,115,232,.15); color: var(--gcp); }
+
+  .discount-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tier-chip { font-size: .72rem; color: var(--text-muted); background: var(--surface2); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
+
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1rem; padding: 2px 6px; border-radius: 4px; }
+  .del-btn:hover { color: var(--danger); background: var(--danger-light); }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+  .empty-state p { margin-top: 8px; font-size: .9rem; }
+
+  .range-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+  .range-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+  .range-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .range-card-provider { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+  .range-card-provider.aws { color: var(--aws); }
+  .range-card-provider.azure { color: var(--azure); }
+  .range-card-provider.gcp { color: var(--gcp); }
+  .range-row { display: flex; justify-content: space-between; font-size: .82rem; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .range-row:last-child { border-bottom: none; }
+  .range-label { color: var(--text-muted); }
+  .range-nums { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .no-data { font-size: .82rem; color: var(--text-muted); font-style: italic; }
+
+  .export-row { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .range-cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <span class="proxima-badge">Proxima</span>
+    <h1>Deal Calibration</h1>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()">Toggle Theme</button>
+</header>
+
+<main>
+  <!-- Summary stats -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Deals</div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-sub">logged</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Discount</div>
+      <div class="stat-value" id="stat-avg-discount">—</div>
+      <div class="stat-sub">across all deals</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Best Deal</div>
+      <div class="stat-value" id="stat-best">—</div>
+      <div class="stat-sub" id="stat-best-sub">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Most Recent</div>
+      <div class="stat-value" id="stat-recent" style="font-size:1rem;padding-top:6px;">—</div>
+      <div class="stat-sub" id="stat-recent-sub">—</div>
+    </div>
+  </div>
+
+  <!-- Log a deal -->
+  <div class="section">
+    <div class="section-title" id="form-title">Log a New Deal</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Provider</label>
+        <select id="f-provider">
+          <option value="aws">AWS</option>
+          <option value="azure">Azure</option>
+          <option value="gcp">GCP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Annual Spend Tier</label>
+        <select id="f-tier">
+          <option value="under1m">Under $1M</option>
+          <option value="1m-5m">$1M – $5M</option>
+          <option value="5m-10m">$5M – $10M</option>
+          <option value="10m-25m">$10M – $25M</option>
+          <option value="25m-50m">$25M – $50M</option>
+          <option value="50m-100m">$50M – $100M</option>
+          <option value="100m+">$100M+</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Contract Type</label>
+        <select id="f-contract">
+          <option value="EDP">EDP (AWS)</option>
+          <option value="EA">EA (Azure)</option>
+          <option value="MCA">MCA (Azure)</option>
+          <option value="CUD">CUD (GCP)</option>
+          <option value="CUDS">CUD + CASC (GCP)</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Discount Achieved (%)</label>
+        <input type="number" id="f-discount" min="0" max="70" step="0.5" placeholder="e.g. 18">
+      </div>
+      <div class="form-group">
+        <label>Term Length</label>
+        <select id="f-term">
+          <option value="1yr">1 Year</option>
+          <option value="2yr">2 Years</option>
+          <option value="3yr">3 Years</option>
+          <option value="3yr+">3+ Years</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Close Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-group full">
+        <label>Notes (optional)</label>
+        <textarea id="f-notes" placeholder="Key leverage points, concessions, context..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="saveDeal()">Save Deal</button>
+      <button class="btn-secondary" id="cancel-btn" style="display:none" onclick="cancelEdit()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Deal log table -->
+  <div class="section">
+    <div class="section-title">Deal Log</div>
+    <div class="deals-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Spend Tier</th>
+            <th>Contract</th>
+            <th>Discount</th>
+            <th>Term</th>
+            <th>Date</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="deals-tbody"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none">
+        <div style="font-size:2rem">📋</div>
+        <p>No deals logged yet. Add your first closed deal above.</p>
+      </div>
+    </div>
+    <div class="export-row">
+      <button class="btn-secondary" onclick="exportCSV()">Export CSV</button>
+      <button class="btn-secondary" onclick="clearAll()" style="color:var(--danger)">Clear All</button>
+    </div>
+  </div>
+
+  <!-- Observed ranges by provider -->
+  <div class="range-section">
+    <div class="section-title">Observed Discount Ranges (from your deals)</div>
+    <p style="font-size:.85rem;color:var(--text-muted)">These ranges are calculated from your logged deals and are available to the negotiation planners via localStorage.</p>
+    <div class="range-cards" id="range-cards"></div>
+  </div>
+</main>
+
+<script>
+const STORAGE_KEY = 'proxima-deals';
+let deals = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let editingId = null;
+
+const TIER_LABELS = {
+  'under1m': '< $1M', '1m-5m': '$1M–$5M', '5m-10m': '$5M–$10M',
+  '10m-25m': '$10M–$25M', '25m-50m': '$25M–$50M', '50m-100m': '$50M–$100M', '100m+': '$100M+'
+};
+
+function persist() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(deals));
+}
+
+function saveDeal() {
+  const provider = document.getElementById('f-provider').value;
+  const tier = document.getElementById('f-tier').value;
+  const contract = document.getElementById('f-contract').value;
+  const discount = parseFloat(document.getElementById('f-discount').value);
+  const term = document.getElementById('f-term').value;
+  const date = document.getElementById('f-date').value;
+  const notes = document.getElementById('f-notes').value.trim();
+
+  if (!provider || isNaN(discount) || discount < 0 || discount > 70) {
+    alert('Please enter a valid discount percentage (0–70).');
+    return;
+  }
+
+  if (editingId !== null) {
+    const idx = deals.findIndex(d => d.id === editingId);
+    if (idx >= 0) deals[idx] = { ...deals[idx], provider, tier, contract, discount, term, date, notes };
+    editingId = null;
+  } else {
+    deals.push({ id: Date.now(), provider, tier, contract, discount, term, date, notes, created: new Date().toISOString() });
+  }
+
+  persist();
+  resetForm();
+  render();
+}
+
+function deleteDeal(id) {
+  if (!confirm('Remove this deal?')) return;
+  deals = deals.filter(d => d.id !== id);
+  persist();
+  render();
+}
+
+function editDeal(id) {
+  const d = deals.find(x => x.id === id);
+  if (!d) return;
+  editingId = id;
+  document.getElementById('f-provider').value = d.provider;
+  document.getElementById('f-tier').value = d.tier;
+  document.getElementById('f-contract').value = d.contract;
+  document.getElementById('f-discount').value = d.discount;
+  document.getElementById('f-term').value = d.term;
+  document.getElementById('f-date').value = d.date || '';
+  document.getElementById('f-notes').value = d.notes || '';
+  document.getElementById('form-title').textContent = 'Edit Deal';
+  document.getElementById('cancel-btn').style.display = '';
+  document.querySelector('.btn-primary').textContent = 'Update Deal';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  resetForm();
+}
+
+function resetForm() {
+  ['f-discount', 'f-date', 'f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-provider').value = 'aws';
+  document.getElementById('f-tier').value = 'under1m';
+  document.getElementById('f-contract').value = 'EDP';
+  document.getElementById('f-term').value = '1yr';
+  document.getElementById('form-title').textContent = 'Log a New Deal';
+  document.getElementById('cancel-btn').style.display = 'none';
+  document.querySelector('.btn-primary').textContent = 'Save Deal';
+}
+
+function render() {
+  renderStats();
+  renderTable();
+  renderRanges();
+}
+
+function renderStats() {
+  const total = deals.length;
+  document.getElementById('stat-total').textContent = total;
+
+  if (total === 0) {
+    document.getElementById('stat-avg-discount').textContent = '—';
+    document.getElementById('stat-best').textContent = '—';
+    document.getElementById('stat-best-sub').textContent = '—';
+    document.getElementById('stat-recent').textContent = '—';
+    document.getElementById('stat-recent-sub').textContent = '—';
+    return;
+  }
+
+  const avg = deals.reduce((s, d) => s + d.discount, 0) / total;
+  document.getElementById('stat-avg-discount').textContent = avg.toFixed(1) + '%';
+
+  const best = deals.reduce((a, b) => b.discount > a.discount ? b : a);
+  document.getElementById('stat-best').textContent = best.discount + '%';
+  document.getElementById('stat-best-sub').textContent = best.provider.toUpperCase() + ' · ' + (TIER_LABELS[best.tier] || best.tier);
+
+  const recent = [...deals].sort((a, b) => (b.date || b.created || '') > (a.date || a.created || '') ? 1 : -1)[0];
+  document.getElementById('stat-recent').textContent = recent.provider.toUpperCase() + ' ' + recent.discount + '%';
+  document.getElementById('stat-recent-sub').textContent = recent.date ? new Date(recent.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'date not set';
+}
+
+function renderTable() {
+  const tbody = document.getElementById('deals-tbody');
+  const empty = document.getElementById('empty-state');
+  if (deals.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  const sorted = [...deals].sort((a, b) => (b.date || b.created || '') > (a.date || a.created || '') ? 1 : -1);
+  tbody.innerHTML = sorted.map(d => `
+    <tr>
+      <td><span class="provider-pill ${d.provider}">${d.provider.toUpperCase()}</span></td>
+      <td><span class="tier-chip">${TIER_LABELS[d.tier] || d.tier}</span></td>
+      <td>${d.contract}</td>
+      <td><span class="discount-val">${d.discount}%</span></td>
+      <td>${d.term}</td>
+      <td>${d.date ? new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
+      <td style="max-width:220px;font-size:.8rem;color:var(--text-muted)">${d.notes ? d.notes.substring(0, 80) + (d.notes.length > 80 ? '…' : '') : '—'}</td>
+      <td>
+        <button class="del-btn" title="Edit" onclick="editDeal(${d.id})">✏️</button>
+        <button class="del-btn" title="Delete" onclick="deleteDeal(${d.id})">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderRanges() {
+  const providers = ['aws', 'azure', 'gcp'];
+  const container = document.getElementById('range-cards');
+  container.innerHTML = providers.map(p => {
+    const pDeals = deals.filter(d => d.provider === p);
+    if (pDeals.length === 0) {
+      return `<div class="range-card">
+        <div class="range-card-provider ${p}">${p.toUpperCase()}</div>
+        <div class="no-data">No ${p.toUpperCase()} deals yet</div>
+      </div>`;
+    }
+    const discounts = pDeals.map(d => d.discount).sort((a, b) => a - b);
+    const min = discounts[0], max = discounts[discounts.length - 1];
+    const avg = discounts.reduce((a, b) => a + b, 0) / discounts.length;
+    const median = discounts[Math.floor(discounts.length / 2)];
+
+    // Tier breakdown
+    const tierGroups = {};
+    pDeals.forEach(d => {
+      if (!tierGroups[d.tier]) tierGroups[d.tier] = [];
+      tierGroups[d.tier].push(d.discount);
+    });
+
+    const tierRows = Object.entries(tierGroups).map(([tier, vals]) => {
+      const tMin = Math.min(...vals), tMax = Math.max(...vals);
+      const label = TIER_LABELS[tier] || tier;
+      return `<div class="range-row"><span class="range-label">${label}</span><span class="range-nums">${tMin === tMax ? tMin + '%' : tMin + '–' + tMax + '%'}</span></div>`;
+    }).join('');
+
+    return `<div class="range-card">
+      <div class="range-card-provider ${p}">${p.toUpperCase()} <span style="font-weight:400;font-size:.7rem;color:var(--text-muted)">(${pDeals.length} deal${pDeals.length !== 1 ? 's' : ''})</span></div>
+      <div class="range-row"><span class="range-label">Range</span><span class="range-nums">${min}–${max}%</span></div>
+      <div class="range-row"><span class="range-label">Avg</span><span class="range-nums">${avg.toFixed(1)}%</span></div>
+      <div class="range-row"><span class="range-label">Median</span><span class="range-nums">${median}%</span></div>
+      <div style="margin-top:8px;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:4px;">By Tier</div>
+      ${tierRows}
+    </div>`;
+  }).join('');
+}
+
+function exportCSV() {
+  if (deals.length === 0) { alert('No deals to export.'); return; }
+  const cols = ['provider', 'tier', 'contract', 'discount', 'term', 'date', 'notes'];
+  const header = cols.join(',');
+  const rows = deals.map(d => cols.map(c => JSON.stringify(d[c] ?? '')).join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'proxima-deals.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearAll() {
+  if (!confirm('Delete all logged deals? This cannot be undone.')) return;
+  deals = [];
+  persist();
+  render();
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+}
+
+// Set today's date as default
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+render();
+</script>
+</body>
+</html>
