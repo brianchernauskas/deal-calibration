@@ -23,6 +23,7 @@
     --aws: #ff9900;
     --azure: #0078d4;
     --gcp: #1a73e8;
+    --salesforce: #00a1e0;
   }
   [data-theme="dark"] {
     --bg: #0f1117;
@@ -109,6 +110,7 @@
   .provider-pill.aws { background: rgba(255,153,0,.15); color: var(--aws); }
   .provider-pill.azure { background: rgba(0,120,212,.15); color: var(--azure); }
   .provider-pill.gcp { background: rgba(26,115,232,.15); color: var(--gcp); }
+  .provider-pill.salesforce { background: rgba(0,161,224,.15); color: var(--salesforce); }
 
   .discount-val { font-weight: 700; font-variant-numeric: tabular-nums; }
   .tier-chip { font-size: .72rem; color: var(--text-muted); background: var(--surface2); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
@@ -120,12 +122,13 @@
   .empty-state p { margin-top: 8px; font-size: .9rem; }
 
   .range-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
-  .range-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+  .range-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-top: 16px; }
   .range-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
   .range-card-provider { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
   .range-card-provider.aws { color: var(--aws); }
   .range-card-provider.azure { color: var(--azure); }
   .range-card-provider.gcp { color: var(--gcp); }
+  .range-card-provider.salesforce { color: var(--salesforce); }
   .range-row { display: flex; justify-content: space-between; font-size: .82rem; padding: 5px 0; border-bottom: 1px solid var(--border); }
   .range-row:last-child { border-bottom: none; }
   .range-label { color: var(--text-muted); }
@@ -182,23 +185,16 @@
     <div class="form-grid">
       <div class="form-group">
         <label>Provider</label>
-        <select id="f-provider">
+        <select id="f-provider" onchange="syncTierOptions()">
           <option value="aws">AWS</option>
           <option value="azure">Azure</option>
           <option value="gcp">GCP</option>
+          <option value="salesforce">Salesforce</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Annual Spend Tier</label>
-        <select id="f-tier">
-          <option value="under1m">Under $1M</option>
-          <option value="1m-5m">$1M – $5M</option>
-          <option value="5m-10m">$5M – $10M</option>
-          <option value="10m-25m">$10M – $25M</option>
-          <option value="25m-50m">$25M – $50M</option>
-          <option value="50m-100m">$50M – $100M</option>
-          <option value="100m+">$100M+</option>
-        </select>
+        <label id="tier-label">Annual Spend Tier</label>
+        <select id="f-tier"></select>
       </div>
       <div class="form-group">
         <label>Contract Type</label>
@@ -208,6 +204,8 @@
           <option value="MCA">MCA (Azure)</option>
           <option value="CUD">CUD (GCP)</option>
           <option value="CUDS">CUD + CASC (GCP)</option>
+          <option value="OrderForm">Order Form (Salesforce)</option>
+          <option value="MSA">MSA + Order Form (Salesforce)</option>
           <option value="Other">Other</option>
         </select>
       </div>
@@ -283,9 +281,40 @@ let deals = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 let editingId = null;
 
 const TIER_LABELS = {
+  // Cloud infrastructure tiers
   'under1m': '< $1M', '1m-5m': '$1M–$5M', '5m-10m': '$5M–$10M',
-  '10m-25m': '$10M–$25M', '25m-50m': '$25M–$50M', '50m-100m': '$50M–$100M', '100m+': '$100M+'
+  '10m-25m': '$10M–$25M', '25m-50m': '$25M–$50M', '50m-100m': '$50M–$100M', '100m+': '$100M+',
+  // SaaS ACV tiers — a $250K Salesforce contract is a substantial deal, so the
+  // cloud tiers (which start at "under $1M") are far too coarse to calibrate against.
+  'sf-under100k': '< $100K', 'sf-100k-250k': '$100K–$250K', 'sf-250k-500k': '$250K–$500K',
+  'sf-500k-1m': '$500K–$1M', 'sf-1m-2500k': '$1M–$2.5M', 'sf-2500k-5m': '$2.5M–$5M',
+  'sf-5m-10m': '$5M–$10M', 'sf-10mplus': '$10M+'
 };
+
+// Tier option sets per provider. SaaS deals need their own scale.
+const TIER_SETS = {
+  cloud: ['under1m', '1m-5m', '5m-10m', '10m-25m', '25m-50m', '50m-100m', '100m+'],
+  saas:  ['sf-under100k', 'sf-100k-250k', 'sf-250k-500k', 'sf-500k-1m',
+          'sf-1m-2500k', 'sf-2500k-5m', 'sf-5m-10m', 'sf-10mplus'],
+};
+const SAAS_PROVIDERS = ['salesforce'];
+
+function tierSetFor(provider) {
+  return SAAS_PROVIDERS.includes(provider) ? TIER_SETS.saas : TIER_SETS.cloud;
+}
+
+// Repopulates the tier dropdown when the provider changes, preserving the
+// current selection if it is still valid for the new provider.
+function syncTierOptions(preserve) {
+  const provider = document.getElementById('f-provider').value;
+  const sel = document.getElementById('f-tier');
+  const keys = tierSetFor(provider);
+  const want = preserve || sel.value;
+  sel.innerHTML = keys.map(k => `<option value="${k}">${TIER_LABELS[k]}</option>`).join('');
+  sel.value = keys.includes(want) ? want : keys[0];
+  document.getElementById('tier-label').textContent =
+    SAAS_PROVIDERS.includes(provider) ? 'Annual Contract Value (ACV)' : 'Annual Spend Tier';
+}
 
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(deals));
@@ -330,7 +359,7 @@ function editDeal(id) {
   if (!d) return;
   editingId = id;
   document.getElementById('f-provider').value = d.provider;
-  document.getElementById('f-tier').value = d.tier;
+  syncTierOptions(d.tier);
   document.getElementById('f-contract').value = d.contract;
   document.getElementById('f-discount').value = d.discount;
   document.getElementById('f-term').value = d.term;
@@ -350,7 +379,7 @@ function cancelEdit() {
 function resetForm() {
   ['f-discount', 'f-date', 'f-notes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-provider').value = 'aws';
-  document.getElementById('f-tier').value = 'under1m';
+  syncTierOptions('under1m');
   document.getElementById('f-contract').value = 'EDP';
   document.getElementById('f-term').value = '1yr';
   document.getElementById('form-title').textContent = 'Log a New Deal';
@@ -417,7 +446,7 @@ function renderTable() {
 }
 
 function renderRanges() {
-  const providers = ['aws', 'azure', 'gcp'];
+  const providers = ['aws', 'azure', 'gcp', 'salesforce'];
   const container = document.getElementById('range-cards');
   container.innerHTML = providers.map(p => {
     const pDeals = deals.filter(d => d.provider === p);
@@ -484,6 +513,7 @@ function toggleTheme() {
 // Set today's date as default
 document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 
+syncTierOptions('under1m');
 render();
 </script>
 </body>
