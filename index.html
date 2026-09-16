@@ -24,6 +24,7 @@
     --azure: #0078d4;
     --gcp: #1a73e8;
     --salesforce: #00a1e0;
+    --adobe: #eb1000;
   }
   [data-theme="dark"] {
     --bg: #0f1117;
@@ -111,6 +112,7 @@
   .provider-pill.azure { background: rgba(0,120,212,.15); color: var(--azure); }
   .provider-pill.gcp { background: rgba(26,115,232,.15); color: var(--gcp); }
   .provider-pill.salesforce { background: rgba(0,161,224,.15); color: var(--salesforce); }
+  .provider-pill.adobe { background: rgba(235,16,0,.12); color: var(--adobe); }
 
   .discount-val { font-weight: 700; font-variant-numeric: tabular-nums; }
   .tier-chip { font-size: .72rem; color: var(--text-muted); background: var(--surface2); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
@@ -129,6 +131,7 @@
   .range-card-provider.azure { color: var(--azure); }
   .range-card-provider.gcp { color: var(--gcp); }
   .range-card-provider.salesforce { color: var(--salesforce); }
+  .range-card-provider.adobe { color: var(--adobe); }
   .range-row { display: flex; justify-content: space-between; font-size: .82rem; padding: 5px 0; border-bottom: 1px solid var(--border); }
   .range-row:last-child { border-bottom: none; }
   .range-label { color: var(--text-muted); }
@@ -190,6 +193,7 @@
           <option value="azure">Azure</option>
           <option value="gcp">GCP</option>
           <option value="salesforce">Salesforce</option>
+          <option value="adobe">Adobe</option>
         </select>
       </div>
       <div class="form-group">
@@ -206,6 +210,9 @@
           <option value="CUDS">CUD + CASC (GCP)</option>
           <option value="OrderForm">Order Form (Salesforce)</option>
           <option value="MSA">MSA + Order Form (Salesforce)</option>
+          <option value="ETLA">ETLA (Adobe)</option>
+          <option value="VIP3YC">VIP 3-Year Commit (Adobe)</option>
+          <option value="ExperienceCloud">Experience Cloud (Adobe)</option>
           <option value="Other">Other</option>
         </select>
       </div>
@@ -297,7 +304,8 @@ const TIER_SETS = {
   saas:  ['sf-under100k', 'sf-100k-250k', 'sf-250k-500k', 'sf-500k-1m',
           'sf-1m-2500k', 'sf-2500k-5m', 'sf-5m-10m', 'sf-10mplus'],
 };
-const SAAS_PROVIDERS = ['salesforce'];
+// Every SaaS provider shares the sf- tier keys; deals are separated by provider.
+const SAAS_PROVIDERS = ['salesforce', 'adobe'];
 
 function tierSetFor(provider) {
   return SAAS_PROVIDERS.includes(provider) ? TIER_SETS.saas : TIER_SETS.cloud;
@@ -446,7 +454,7 @@ function renderTable() {
 }
 
 function renderRanges() {
-  const providers = ['aws', 'azure', 'gcp', 'salesforce'];
+  const providers = ['aws', 'azure', 'gcp', 'salesforce', 'adobe'];
   const container = document.getElementById('range-cards');
   container.innerHTML = providers.map(p => {
     const pDeals = deals.filter(d => d.provider === p);
