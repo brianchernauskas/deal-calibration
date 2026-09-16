@@ -26,6 +26,7 @@
     --salesforce: #00a1e0;
     --adobe: #eb1000;
     --microsoft: #0ea5a4;
+    --oracle: #c74634;
   }
   [data-theme="dark"] {
     --bg: #0f1117;
@@ -115,6 +116,7 @@
   .provider-pill.salesforce { background: rgba(0,161,224,.15); color: var(--salesforce); }
   .provider-pill.adobe { background: rgba(235,16,0,.12); color: var(--adobe); }
   .provider-pill.microsoft { background: rgba(14,165,164,.14); color: var(--microsoft); }
+  .provider-pill.oracle { background: rgba(199,70,52,.12); color: var(--oracle); }
   .line-chip { display: block; margin-top: 3px; font-size: .7rem; color: var(--text-muted); }
 
   .discount-val { font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -136,6 +138,7 @@
   .range-card-provider.salesforce { color: var(--salesforce); }
   .range-card-provider.adobe { color: var(--adobe); }
   .range-card-provider.microsoft { color: var(--microsoft); }
+  .range-card-provider.oracle { color: var(--oracle); }
   .range-row { display: flex; justify-content: space-between; font-size: .82rem; padding: 5px 0; border-bottom: 1px solid var(--border); }
   .range-row:last-child { border-bottom: none; }
   .range-label { color: var(--text-muted); }
@@ -199,6 +202,7 @@
           <option value="salesforce">Salesforce</option>
           <option value="adobe">Adobe</option>
           <option value="microsoft">Microsoft (non-Azure lines)</option>
+          <option value="oracle">Oracle</option>
         </select>
       </div>
       <div class="form-group" id="line-group" style="display:none">
@@ -223,6 +227,9 @@
           <option value="ETLA">ETLA (Adobe)</option>
           <option value="VIP3YC">VIP 3-Year Commit (Adobe)</option>
           <option value="ExperienceCloud">Experience Cloud (Adobe)</option>
+          <option value="OraclePerpetual">Perpetual + Support (Oracle)</option>
+          <option value="OracleULA">ULA (Oracle)</option>
+          <option value="OracleCloud">SaaS / OCI Subscription (Oracle)</option>
           <option value="Other">Other</option>
         </select>
       </div>
@@ -338,7 +345,7 @@ const TIER_SETS = {
   microsoft: ['ms-under500k', 'ms-500k-2m', 'ms-2m-10m', 'ms-10m-25m', 'ms-25m-50m', 'ms-50mplus'],
 };
 // Every SaaS provider shares the sf- tier keys; deals are separated by provider.
-const SAAS_PROVIDERS = ['salesforce', 'adobe'];
+const SAAS_PROVIDERS = ['salesforce', 'adobe', 'oracle'];
 
 function tierSetFor(provider) {
   if (provider === 'microsoft') return TIER_SETS.microsoft;
@@ -498,7 +505,7 @@ function renderTable() {
 }
 
 function renderRanges() {
-  const providers = ['aws', 'azure', 'gcp', 'salesforce', 'adobe', 'microsoft'];
+  const providers = ['aws', 'azure', 'gcp', 'salesforce', 'adobe', 'microsoft', 'oracle'];
   const container = document.getElementById('range-cards');
   container.innerHTML = providers.map(p => {
     const pDeals = deals.filter(d => d.provider === p);
